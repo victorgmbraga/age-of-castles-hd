@@ -1,6 +1,8 @@
 # Arquivos do jogo nunca entram no repositório.
 *.swf
 *.SWF
+*.exe
+*.EXE
 save*.xml
 
 # Ferramentas e arquivos de trabalho do upscale

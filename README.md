@@ -59,6 +59,9 @@ npm run use:original -- /caminho/para/RAW_001.exe
 npm run dev
 ```
 
+Guarde o `RAW_001.exe` fora de `public/`: tudo o que está lá é copiado
+para `dist/` no `npm run build`. (O `.gitignore` já bloqueia `*.exe` e `*.swf`.)
+
 O upscale pode ser interrompido e rodado de novo: imagens já ampliadas são
 puladas. Para rodar em segundo plano com prioridade baixa:
 
