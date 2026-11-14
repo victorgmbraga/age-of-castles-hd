@@ -1,0 +1,16 @@
+# Arquivos do jogo nunca entram no repositório.
+*.swf
+*.SWF
+save*.xml
+
+# Ferramentas e arquivos de trabalho do upscale
+upscale/.tools/
+upscale/work/
+__pycache__/
+
+node_modules/
+dist/
+.vite/
+*.log
+.env
+.env.*

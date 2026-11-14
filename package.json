@@ -1,0 +1,19 @@
+{
+  "name": "age-of-castles-hd",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Kit não oficial para jogar Age of Castles no navegador (Ruffle) com gráficos ampliados 2x, a partir da sua própria cópia do jogo.",
+  "scripts": {
+    "setup:upscale": "upscale/setup.sh",
+    "upscale": "upscale/build.sh",
+    "dev": "vite",
+    "build": "vite build",
+    "build:single": "vite build && node scripts/build-single.mjs",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^8.3.5"
+  },
+  "license": "MIT"
+}
