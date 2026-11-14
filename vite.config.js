@@ -9,8 +9,8 @@ const swfPath = new URL(`public/${SWF}`, import.meta.url);
 // própria cópia do jogo (ver README).
 if (!existsSync(swfPath)) {
   throw new Error(
-    `public/${SWF} não encontrado. Gere com "upscale/build.sh /caminho/do/RAW_001.exe" ` +
-      `ou "upscale/build.sh --original ..." para usar o original (ver README).`,
+    `public/${SWF} não encontrado. Coloque o RAW_001.exe ou o ${SWF} em put-game-here/ ` +
+      `e rode "npm run setup" (ou "npm run use:original", sem ampliar). Ver README.`,
   );
 }
 

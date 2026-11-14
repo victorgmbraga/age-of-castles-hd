@@ -2,25 +2,40 @@
 # Amplia 2x as imagens do SEU ageofcastles.swf e grava o resultado em
 # public/ageofcastles.swf, que é o arquivo usado pelo app web.
 #
-# Uso:  upscale/build.sh /caminho/para/ageofcastles.swf
-#   ou: upscale/build.sh /caminho/para/RAW_001.exe   (o SWF é extraído dele)
+# Uso:  upscale/build.sh [--original] [arquivo]
+# O arquivo pode ser o RAW_001.exe (o SWF é extraído dele) ou o
+# ageofcastles.swf. Sem argumento, usa o que estiver em put-game-here/.
+# Com --original, só extrai/confere o SWF e o copia para public/, sem
+# ampliar (não precisa do setup.sh).
 #
 # Antes, rode upscale/setup.sh uma vez. Leva cerca de 20 min numa CPU com
 # 2 threads; THREADS=n usa mais núcleos. Para rodar em segundo plano sem
 # atrapalhar a máquina:
-#   nohup nice -n 19 ionice -c 3 upscale/build.sh jogo.swf > upscale/work/build.log 2>&1 &
+#   nohup nice -n 19 ionice -c 3 upscale/build.sh > upscale/work/build.log 2>&1 &
 # Se for interrompido, rode de novo: as imagens já ampliadas são puladas.
 set -euo pipefail
 
-# Com --original, só extrai/confere o SWF e o copia para public/, sem
-# ampliar (não precisa do setup.sh).
 ORIGINAL=0
 if [ "${1:-}" = "--original" ]; then ORIGINAL=1; shift; fi
-if [ $# -ne 1 ] || [ ! -f "$1" ]; then
-  echo "Uso: $0 [--original] /caminho/para/ageofcastles.swf  (ou RAW_001.exe)" >&2
+GAME_DIR="$(cd "$(dirname "$0")/.." && pwd)/put-game-here"
+INPUTS=()
+if [ $# -eq 1 ] && [ -f "$1" ]; then
+  INPUTS=("$(cd "$(dirname "$1")" && pwd)/$(basename "$1")")
+elif [ $# -eq 0 ]; then
+  # Todos os .exe e .swf da pasta; o primeiro que contiver a versão
+  # suportada é usado.
+  while IFS= read -r f; do INPUTS+=("$f"); done < <(
+    find "$GAME_DIR" -maxdepth 1 -type f \( -iname '*.exe' -o -iname '*.swf' \) 2>/dev/null | sort)
+  if [ ${#INPUTS[@]} -eq 0 ]; then
+    echo "Nenhum jogo encontrado em put-game-here/." >&2
+    echo "Copie para lá o RAW_001.exe ou o ageofcastles.swf, ou passe o caminho:" >&2
+    echo "  $0 [--original] /caminho/para/RAW_001.exe" >&2
+    exit 2
+  fi
+else
+  echo "Uso: $0 [--original] [/caminho/para/RAW_001.exe | ageofcastles.swf]" >&2
   exit 2
 fi
-SWF_IN="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 cd "$(dirname "$0")"
 
 # O pipeline depende dos ids e das matrizes deste arquivo exato.
@@ -34,7 +49,7 @@ mkdir -p "$W"
 echo "== 0/6 verificação da entrada"
 # Aceita o SWF ou o executável do jogo; sai com erro se não houver a versão
 # suportada. Só o Python da máquina é usado aqui (biblioteca padrão).
-python3 -I extract_swf.py "$SWF_IN" "$W/input.swf" "$EXPECTED"
+python3 -I extract_swf.py "$W/input.swf" "$EXPECTED" "${INPUTS[@]}"
 SWF_IN="$PWD/$W/input.swf"
 [ "$(sha256 "$SWF_IN")" = "$EXPECTED" ]
 if [ "$ORIGINAL" = 1 ]; then

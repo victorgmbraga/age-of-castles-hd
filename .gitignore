@@ -1,4 +1,6 @@
 # Arquivos do jogo nunca entram no repositório.
+put-game-here/*
+!put-game-here/README.md
 *.swf
 *.SWF
 *.exe

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Obtém o ageofcastles.swf a partir do arquivo fornecido pelo usuário.
 
-Uso: extract_swf.py <entrada> <saida.swf> <sha256_esperado>
+Uso: extract_swf.py <saida.swf> <sha256_esperado> <entrada> [<entrada> ...]
 
-A entrada pode ser:
+Usa a primeira entrada que contiver a versão suportada. Cada uma pode ser:
 - o próprio SWF;
 - o executável Windows do jogo (RAW_001.exe), que guarda o SWF sem
   criptografia como recurso (RT_RCDATA "FLASHRES"). O executável não é
@@ -17,14 +17,15 @@ import sys
 import zlib
 from pathlib import Path
 
-src, dst, esperado = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3].lower()
-data = src.read_bytes()
+dst, esperado = Path(sys.argv[1]), sys.argv[2].lower()
 
 
-def candidato(p):
+def candidato(data, p):
     """Bytes do SWF que começa em p, ou None se não for um SWF válido."""
+    if p + 8 > len(data):
+        return None
     assinatura, versao = data[p:p + 3], data[p + 3]
-    if not 1 <= versao <= 50 or p + 8 > len(data):
+    if not 1 <= versao <= 50:
         return None
     tamanho = struct.unpack("<I", data[p + 4:p + 8])[0]
     if assinatura == b"FWS":
@@ -47,24 +48,30 @@ def candidato(p):
     return data[p:p + 8 + consumido]
 
 
-def achar():
+def achar(data):
+    """Bytes do SWF suportado dentro de data, ou o número de candidatos."""
     if hashlib.sha256(data).hexdigest() == esperado:
         return data
     vistos = 0
     for assinatura in (b"FWS", b"CWS"):
         p = data.find(assinatura)
         while p != -1:
-            swf = candidato(p)
+            swf = candidato(data, p)
             if swf is not None:
                 vistos += 1
                 if hashlib.sha256(swf).hexdigest() == esperado:
                     print(f"SWF encontrado no offset {p:#x} ({len(swf)} bytes)")
                     return swf
             p = data.find(assinatura, p + 1)
-    raise SystemExit(
-        f"Nenhum SWF da versão suportada em {src.name} "
-        f"({vistos} candidato(s) com outro conteúdo).\n"
-        f"Forneça o ageofcastles.swf ou o RAW_001.exe da instalação Windows.")
+    return vistos
 
 
-dst.write_bytes(achar())
+for src in map(Path, sys.argv[3:]):
+    achado = achar(src.read_bytes())
+    if isinstance(achado, bytes):
+        print(f"Usando {src.name}")
+        dst.write_bytes(achado)
+        break
+    print(f"{src.name}: nenhum SWF da versão suportada ({achado} candidato(s) com outro conteúdo)")
+else:
+    raise SystemExit("Forneça o RAW_001.exe da instalação Windows ou o ageofcastles.swf.")

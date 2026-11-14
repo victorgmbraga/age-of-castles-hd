@@ -36,42 +36,42 @@ ampliados 2x por IA (Real-ESRGAN) e saves que funcionam.
 
 ## Passo a passo
 
+1. Copie o `RAW_001.exe` (ou o `ageofcastles.swf`) para a pasta
+   **`put-game-here/`**. Tudo nela é ignorado pelo git.
+2. Rode:
+
 ```bash
 npm install
-
-# 1) Ferramentas do upscale, instaladas em upscale/.tools
-#    (Java 21, JPEXS FFDec, PyTorch CPU, modelo Real-ESRGAN x2plus)
-npm run setup:upscale
-
-# 2) Gera public/ageofcastles.swf a partir da sua cópia (~20 min)
-npm run upscale -- /caminho/para/RAW_001.exe
-#    (ou /caminho/para/ageofcastles.swf)
-#    Mais rápido, usando mais núcleos:  THREADS=8 npm run upscale -- ...
-
-# 3) Joga
-npm run dev
+npm run setup   # instala as ferramentas e gera o jogo ampliado (~20 min)
+npm run dev     # abre o jogo
 ```
 
-Para jogar sem o upscale (não precisa do passo 1):
+O `npm run setup`:
 
-```bash
-npm run use:original -- /caminho/para/RAW_001.exe
-npm run dev
-```
+- instala em `upscale/.tools` o Java 21, o JPEXS FFDec, o PyTorch (CPU) e o
+  modelo Real-ESRGAN x2plus (só na primeira vez);
+- extrai e confere o SWF do que estiver em `put-game-here/`;
+- amplia as imagens e grava o resultado em `public/ageofcastles.swf`, o
+  arquivo que o app usa.
 
-Guarde o `RAW_001.exe` fora de `public/`: tudo o que está lá é copiado
-para `dist/` no `npm run build`. (O `.gitignore` já bloqueia `*.exe` e `*.swf`.)
+Outras formas:
+
+| Comando | O que faz |
+| --- | --- |
+| `npm run use:original` | Usa o jogo sem ampliar (não instala nada). |
+| `npm run upscale` | Só refaz o build, com as ferramentas já instaladas. |
+| `npm run upscale -- /caminho/RAW_001.exe` | Usa outro arquivo em vez da pasta (vale para os três comandos). |
+| `THREADS=8 npm run setup` | Usa mais núcleos de CPU (padrão: 2). |
 
 O upscale pode ser interrompido e rodado de novo: imagens já ampliadas são
 puladas. Para rodar em segundo plano com prioridade baixa:
 
 ```bash
 mkdir -p upscale/work
-nohup nice -n 19 ionice -c 3 upscale/build.sh /caminho/para/RAW_001.exe \
-  > upscale/work/build.log 2>&1 &
+nohup nice -n 19 ionice -c 3 upscale/build.sh > upscale/work/build.log 2>&1 &
 ```
 
-Ao terminar, `upscale/work/` (~1 GB) pode ser apagada.
+Ao terminar, `upscale/work/` (~130 MB) pode ser apagada.
 
 ## Builds
 
@@ -91,6 +91,7 @@ Limpar os dados do site apaga o save.
 ## Estrutura
 
 ```
+put-game-here/            onde você coloca o RAW_001.exe ou o SWF (ignorado pelo git)
 index.html, src/          app web (Ruffle + ponte de save)
 public/ruffle/            Ruffle 0.7.1 self-hosted (MIT/Apache-2.0)
 scripts/build-single.mjs  gera o HTML único

@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Kit não oficial para jogar Age of Castles no navegador (Ruffle) com gráficos ampliados 2x, a partir da sua própria cópia do jogo.",
   "scripts": {
+    "setup": "upscale/setup.sh && upscale/build.sh",
     "setup:upscale": "upscale/setup.sh",
     "upscale": "upscale/build.sh",
     "use:original": "upscale/build.sh --original",
