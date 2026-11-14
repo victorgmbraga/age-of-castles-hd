@@ -4,8 +4,9 @@ Kit **não oficial** para jogar *Age of Castles* no navegador, com os gráficos
 ampliados 2x por IA (Real-ESRGAN) e saves que funcionam.
 
 > **Este repositório não contém o jogo.** Nenhum SWF, imagem, som ou código do
-> Age of Castles faz parte dele. Você precisa da sua própria cópia do
-> `ageofcastles.swf`; os scripts daqui geram a versão ampliada na sua máquina.
+> Age of Castles faz parte dele. Você precisa da sua própria cópia: o
+> `RAW_001.exe` da instalação Windows ou o `ageofcastles.swf`. Os scripts
+> daqui geram a versão ampliada na sua máquina.
 > Projeto sem afiliação com os autores do jogo.
 
 ## Como funciona
@@ -24,8 +25,13 @@ ampliados 2x por IA (Real-ESRGAN) e saves que funcionam.
 - Node.js 20+ (para o app web).
 - ~3 GB livres (ferramentas + arquivos temporários) e cerca de 20 min de CPU
   para o upscale.
-- O arquivo `ageofcastles.swf` da versão suportada (SHA-256
-  `90eb16c2c9f2922b292c31b7857f20fbd723b2c4717c655c707338c455d4c203`).
+- O jogo, em um destes formatos:
+  - `RAW_001.exe`, o executável da instalação Windows. O SWF é extraído
+    dele automaticamente; o exe não é executado nem alterado;
+  - ou o `ageofcastles.swf` já extraído.
+
+  Só uma versão é suportada: o SWF precisa ter SHA-256
+  `90eb16c2c9f2922b292c31b7857f20fbd723b2c4717c655c707338c455d4c203`.
   O script confere isso e recusa outras versões.
 
 ## Passo a passo
@@ -38,22 +44,27 @@ npm install
 npm run setup:upscale
 
 # 2) Gera public/ageofcastles.swf a partir da sua cópia (~20 min)
-npm run upscale -- /caminho/para/ageofcastles.swf
+npm run upscale -- /caminho/para/RAW_001.exe
+#    (ou /caminho/para/ageofcastles.swf)
 #    Mais rápido, usando mais núcleos:  THREADS=8 npm run upscale -- ...
 
 # 3) Joga
 npm run dev
 ```
 
-Para jogar sem o upscale, basta copiar o original para
-`public/ageofcastles.swf` e rodar `npm run dev`.
+Para jogar sem o upscale (não precisa do passo 1):
+
+```bash
+npm run use:original -- /caminho/para/RAW_001.exe
+npm run dev
+```
 
 O upscale pode ser interrompido e rodado de novo: imagens já ampliadas são
 puladas. Para rodar em segundo plano com prioridade baixa:
 
 ```bash
 mkdir -p upscale/work
-nohup nice -n 19 ionice -c 3 upscale/build.sh /caminho/para/ageofcastles.swf \
+nohup nice -n 19 ionice -c 3 upscale/build.sh /caminho/para/RAW_001.exe \
   > upscale/work/build.log 2>&1 &
 ```
 
@@ -82,7 +93,8 @@ public/ruffle/            Ruffle 0.7.1 self-hosted (MIT/Apache-2.0)
 scripts/build-single.mjs  gera o HTML único
 upscale/
   setup.sh                instala as ferramentas em upscale/.tools
-  build.sh                pipeline completo: SWF -> public/ageofcastles.swf
+  build.sh                pipeline completo: exe/SWF -> public/ageofcastles.swf
+  extract_swf.py          tira o SWF do RAW_001.exe e confere o hash
   upscale.py              Real-ESRGAN com preservação de cor e alfa
   prepare_replace.py      codifica as imagens (JPEG / JPEG+alfa)
   fix_matrices.py         ajusta as matrizes de bitmap para o tamanho 2x
@@ -91,6 +103,10 @@ upscale/
 
 ## Detalhes do upscale
 
+0. **Entrada**: se for o executável, `extract_swf.py` procura as assinaturas
+   de SWF (`FWS`/`CWS`) nos bytes, recorta cada candidato pelo tamanho
+   declarado no cabeçalho e fica com o que tem o hash esperado. No
+   `RAW_001.exe` o SWF está sem criptografia no recurso `RT_RCDATA/FLASHRES`.
 1. **Exportação**: `ffdec -export image`, um arquivo por imagem, nomeado pelo
    id do caractere no SWF.
 2. **Ampliação**: Real-ESRGAN x2plus em blocos de 256 px. Nas imagens com

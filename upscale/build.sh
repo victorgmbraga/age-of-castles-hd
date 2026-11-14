@@ -3,6 +3,7 @@
 # public/ageofcastles.swf, que é o arquivo usado pelo app web.
 #
 # Uso:  upscale/build.sh /caminho/para/ageofcastles.swf
+#   ou: upscale/build.sh /caminho/para/RAW_001.exe   (o SWF é extraído dele)
 #
 # Antes, rode upscale/setup.sh uma vez. Leva cerca de 20 min numa CPU com
 # 2 threads; THREADS=n usa mais núcleos. Para rodar em segundo plano sem
@@ -11,8 +12,12 @@
 # Se for interrompido, rode de novo: as imagens já ampliadas são puladas.
 set -euo pipefail
 
+# Com --original, só extrai/confere o SWF e o copia para public/, sem
+# ampliar (não precisa do setup.sh).
+ORIGINAL=0
+if [ "${1:-}" = "--original" ]; then ORIGINAL=1; shift; fi
 if [ $# -ne 1 ] || [ ! -f "$1" ]; then
-  echo "Uso: $0 /caminho/para/ageofcastles.swf" >&2
+  echo "Uso: $0 [--original] /caminho/para/ageofcastles.swf  (ou RAW_001.exe)" >&2
   exit 2
 fi
 SWF_IN="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
@@ -21,12 +26,21 @@ cd "$(dirname "$0")"
 # O pipeline depende dos ids e das matrizes deste arquivo exato.
 EXPECTED=90eb16c2c9f2922b292c31b7857f20fbd723b2c4717c655c707338c455d4c203
 sha256() { if command -v sha256sum >/dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi | cut -d' ' -f1; }
-GOT="$(sha256 "$SWF_IN")"
-if [ "$GOT" != "$EXPECTED" ]; then
-  echo "Este SWF não é a versão suportada." >&2
-  echo "  esperado: $EXPECTED" >&2
-  echo "  recebido: $GOT" >&2
-  exit 1
+
+W=work
+OUT=../public/ageofcastles.swf
+mkdir -p "$W"
+
+echo "== 0/6 verificação da entrada"
+# Aceita o SWF ou o executável do jogo; sai com erro se não houver a versão
+# suportada. Só o Python da máquina é usado aqui (biblioteca padrão).
+python3 -I extract_swf.py "$SWF_IN" "$W/input.swf" "$EXPECTED"
+SWF_IN="$PWD/$W/input.swf"
+[ "$(sha256 "$SWF_IN")" = "$EXPECTED" ]
+if [ "$ORIGINAL" = 1 ]; then
+  cp "$SWF_IN" "$OUT"
+  echo "   $OUT: SWF original, sem ampliação"
+  exit 0
 fi
 
 T="$PWD/.tools"
@@ -40,9 +54,6 @@ fi
 export THREADS="${THREADS:-2}"
 ffdec() { "$JAVA" -Xmx4g -Djava.awt.headless=true -jar "$T/ffdec/ffdec.jar" "$@"; }
 
-W=work
-OUT=../public/ageofcastles.swf
-mkdir -p "$W"
 echo "== $(date '+%F %T') início (THREADS=$THREADS)"
 
 echo "== 1/6 exportação das imagens"

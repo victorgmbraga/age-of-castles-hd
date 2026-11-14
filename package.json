@@ -7,6 +7,7 @@
   "scripts": {
     "setup:upscale": "upscale/setup.sh",
     "upscale": "upscale/build.sh",
+    "use:original": "upscale/build.sh --original",
     "dev": "vite",
     "build": "vite build",
     "build:single": "vite build && node scripts/build-single.mjs",
