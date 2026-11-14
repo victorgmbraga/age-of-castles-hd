@@ -2,6 +2,7 @@
 """Divide a escala das matrizes de preenchimento das imagens ampliadas.
 
 Uso: fix_matrices.py <entrada.xml> <saida.xml> <fator> <id> [<id> ...]
+     (ou @arquivo com os ids separados por espaço)
 
 Trabalha no XML gerado por `ffdec -swf2xml`. Para cada FILLSTYLE de bitmap
 (tipos 64-67) cujo bitmapId esteja na lista, divide scaleX, scaleY,
@@ -12,7 +13,9 @@ import re
 import sys
 
 src, dst, fator = sys.argv[1], sys.argv[2], float(sys.argv[3])
-ids = set(sys.argv[4:])
+ids = set()
+for arg in sys.argv[4:]:
+    ids.update(open(arg[1:], encoding="utf-8").read().split() if arg.startswith("@") else [arg])
 
 item_re = re.compile(r'<item type="FILLSTYLE" bitmapId="(\d+)" fillStyleType="(6[4-7])">\s*<bitmapMatrix ([^>]*)/>')
 attr_re = re.compile(r'(scaleX|scaleY|rotateSkew0|rotateSkew1)="(-?[0-9.Ee+-]+)"')

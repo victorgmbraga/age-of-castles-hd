@@ -21,8 +21,15 @@ ampliados 2x por IA (Real-ESRGAN) e saves que funcionam.
 
 ## Requisitos
 
-- Linux ou macOS, com `bash`, `curl` e Python 3.10+ (com `venv`).
-- Node.js 20+ (para o app web).
+- **Windows 10/11, Linux ou macOS** (x64 ou ARM64).
+- **Node.js 20+**: https://nodejs.org (no Windows: `winget install OpenJS.NodeJS.LTS`).
+- **Python 3.10+**:
+  - Windows: https://www.python.org, marcando *"Add python.exe to PATH"* na
+    instalação (ou `winget install Python.Python.3.12`);
+  - Linux: `python3` e `python3-venv` pelo gerenciador de pacotes;
+  - macOS: `brew install python`.
+
+  O resto (Java, FFDec, PyTorch, modelo) é baixado pelo `npm run setup`.
 - ~3 GB livres (ferramentas + arquivos temporários) e cerca de 20 min de CPU
   para o upscale.
 - O jogo, em um destes formatos:
@@ -60,15 +67,15 @@ Outras formas:
 | --- | --- |
 | `npm run use:original` | Usa o jogo sem ampliar (não instala nada). |
 | `npm run upscale` | Só refaz o build, com as ferramentas já instaladas. |
-| `npm run upscale -- /caminho/RAW_001.exe` | Usa outro arquivo em vez da pasta (vale para os três comandos). |
-| `THREADS=8 npm run setup` | Usa mais núcleos de CPU (padrão: 2). |
+| `npm run upscale -- C:\Jogos\RAW_001.exe` | Usa outro arquivo em vez da pasta (vale para os três comandos). |
+| `npm run setup -- --threads 8` | Usa mais núcleos de CPU (padrão: 2). |
+| `npm run setup -- --low-priority` | Prioridade mínima, para usar o computador enquanto roda. |
 
 O upscale pode ser interrompido e rodado de novo: imagens já ampliadas são
-puladas. Para rodar em segundo plano com prioridade baixa:
+puladas. Num servidor Linux, para rodar em segundo plano:
 
 ```bash
-mkdir -p upscale/work
-nohup nice -n 19 ionice -c 3 upscale/build.sh > upscale/work/build.log 2>&1 &
+nohup npm run setup -- --low-priority > setup.log 2>&1 &
 ```
 
 Ao terminar, `upscale/work/` (~130 MB) pode ser apagada.
@@ -95,14 +102,16 @@ put-game-here/            onde você coloca o RAW_001.exe ou o SWF (ignorado pel
 index.html, src/          app web (Ruffle + ponte de save)
 public/ruffle/            Ruffle 0.7.1 self-hosted (MIT/Apache-2.0)
 scripts/build-single.mjs  gera o HTML único
+scripts/py.mjs            acha o Python do sistema (python3, python ou py -3)
 upscale/
-  setup.sh                instala as ferramentas em upscale/.tools
-  build.sh                pipeline completo: exe/SWF -> public/ageofcastles.swf
+  setup.py                instala as ferramentas em upscale/.tools
+  build.py                pipeline completo: exe/SWF -> public/ageofcastles.swf
   extract_swf.py          tira o SWF do RAW_001.exe e confere o hash
   upscale.py              Real-ESRGAN com preservação de cor e alfa
   prepare_replace.py      codifica as imagens (JPEG / JPEG+alfa)
   fix_matrices.py         ajusta as matrizes de bitmap para o tamanho 2x
   shrink_jpeg3.py         regrava imagens com alfa como JPEG3 e compacta
+tests/                    SWF sintético para testar o pipeline (CI em Windows, Linux e macOS)
 ```
 
 ## Detalhes do upscale

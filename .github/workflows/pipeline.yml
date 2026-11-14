@@ -1,0 +1,67 @@
+# Testa o setup e o pipeline de upscale em Windows, Linux e macOS.
+# Usa um SWF sintético gerado no próprio teste: nada do jogo é necessário.
+name: pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [upscale/**, scripts/**, tests/**, package.json, .github/workflows/pipeline.yml]
+  pull_request:
+    paths: [upscale/**, scripts/**, tests/**, package.json, .github/workflows/pipeline.yml]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: npm ci
+
+      - name: Setup (Java, FFDec, PyTorch, modelo)
+        run: npm run setup:upscale
+
+      - name: Sem jogo em put-game-here, o build falha com mensagem clara
+        run: |
+          if npm run use:original 2> err.txt; then exit 1; fi
+          cat err.txt
+          grep -q "put-game-here" err.txt
+
+      - name: SWF de teste e executável falso
+        run: |
+          PY=upscale/.tools/venv/bin/python
+          [ -f "$PY" ] || PY=upscale/.tools/venv/Scripts/python.exe
+          echo "PY=$PY" >> "$GITHUB_ENV"
+          mkdir -p t
+          "$PY" -I tests/make_test_swf.py t/test.swf put-game-here/RAW_001.exe
+          echo "AOC_SWF_SHA256=$("$PY" -c "import hashlib,sys;print(hashlib.sha256(open('t/test.swf','rb').read()).hexdigest())")" >> "$GITHUB_ENV"
+
+      - name: Upscale a partir de put-game-here/RAW_001.exe
+        run: npm run upscale -- --threads 2
+
+      - name: Confere imagens 2x e matrizes
+        run: '"$PY" -I tests/check_output.py t/test.swf public/ageofcastles.swf'
+
+      - name: Upscale com caminho explícito (--out/--work separados)
+        run: |
+          npm run upscale -- --work t/work --out t/out.swf t/test.swf
+          "$PY" -I tests/check_output.py t/test.swf t/out.swf
+
+      - name: --original e HTML único
+        run: |
+          npm run use:original
+          npm run build:single
+          ls -l dist/age-of-castles.html
