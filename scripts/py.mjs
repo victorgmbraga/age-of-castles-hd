@@ -31,5 +31,7 @@ if (!python) {
 }
 
 const [cmd, ...pre] = python;
-const r = spawnSync(cmd, [...pre, "-I", ...process.argv.slice(2)], { stdio: "inherit" });
+// -X utf8: no Windows, sem isso a saída redirecionada sai em cp1252 e os
+// acentos se corrompem (o build.py repassa a opção para os scripts que chama).
+const r = spawnSync(cmd, [...pre, "-I", "-X", "utf8", ...process.argv.slice(2)], { stdio: "inherit" });
 process.exit(r.status ?? 1);

@@ -28,6 +28,8 @@ ROOT = HERE.parent
 GAME_DIR = ROOT / "put-game-here"
 T = HERE / ".tools"
 WIN = sys.platform == "win32"
+# Isolado (-I) e com saída em UTF-8 também no Windows (-X utf8).
+PY_FLAGS = ["-I", "-X", "utf8"]
 
 # O pipeline depende dos ids e das matrizes deste arquivo exato.
 # AOC_SWF_SHA256 existe só para os testes automáticos, que usam um SWF
@@ -101,7 +103,7 @@ def main() -> None:
 
     step("0/6 verificação da entrada")
     entrada = W / "input.swf"
-    run([sys.executable, "-I", HERE / "extract_swf.py", entrada, EXPECTED, *inputs(a.arquivo)])
+    run([sys.executable, *PY_FLAGS, HERE / "extract_swf.py", entrada, EXPECTED, *inputs(a.arquivo)])
     if sha256(entrada) != EXPECTED:
         sys.exit("SWF extraído com hash inesperado.")
     if a.original:
@@ -151,10 +153,10 @@ def main() -> None:
     step(f"2/6 ampliação (Real-ESRGAN x2, {a.threads} threads, uma linha por imagem)")
     # Em lotes, para não estourar o limite de tamanho da linha de comando no Windows.
     for i in range(0, len(arquivos), 50):
-        run([py, "-I", HERE / "upscale.py", model, W / "x2", *arquivos[i:i + 50]], env=env)
+        run([py, *PY_FLAGS, HERE / "upscale.py", model, W / "x2", *arquivos[i:i + 50]], env=env)
 
     step("3/6 codificação e lista de trocas")
-    run([py, "-I", HERE / "prepare_replace.py", images, W / "x2", W / "stage",
+    run([py, *PY_FLAGS, HERE / "prepare_replace.py", images, W / "x2", W / "stage",
          W / "replace_args.txt", W / "replaced_ids.txt"])
 
     step("4/6 troca das imagens no SWF")
@@ -164,13 +166,13 @@ def main() -> None:
     ffdec("-swf2xml", W / "x2_replaced.swf", W / "x2.xml")
     ids = (W / "replaced_ids.txt").read_text().split()
     # Os ids vão por arquivo (@...) pelo mesmo motivo do lote acima.
-    run([py, "-I", HERE / "fix_matrices.py", W / "x2.xml", W / "x2_fixed.xml", "2", "@" + str(W / "replaced_ids.txt")])
+    run([py, *PY_FLAGS, HERE / "fix_matrices.py", W / "x2.xml", W / "x2_fixed.xml", "2", "@" + str(W / "replaced_ids.txt")])
 
     step("6/6 remontagem e compactação")
     ffdec("-xml2swf", W / "x2_fixed.xml", W / "x2_png.swf")
     # O FFDec grava as imagens com alfa como PNG sem perda dentro da JPEG3;
     # regrava como JPEG pré-multiplicado + alfa (como o original) e compacta.
-    run([py, "-I", HERE / "shrink_jpeg3.py", W / "x2_png.swf", OUT, W / "x2", "90"])
+    run([py, *PY_FLAGS, HERE / "shrink_jpeg3.py", W / "x2_png.swf", OUT, W / "x2", "90"])
     for f in ("x2.xml", "x2_fixed.xml", "x2_replaced.swf", "x2_png.swf"):
         (W / f).unlink(missing_ok=True)
 
